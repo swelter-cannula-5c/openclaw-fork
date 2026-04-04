@@ -11,7 +11,20 @@ export type AuthProfileConfig = {
   displayName?: string;
 };
 
+export type AuthMasqueradeConfig = {
+  /** Enable Claude Code masquerade for Anthropic OAuth requests. Default: false. */
+  enabled?: boolean;
+  /** User-Agent string to send. Default: "claude-cli/<version>". */
+  userAgent?: string;
+  /** x-app header value. Default: "cli". */
+  xApp?: string;
+  /** Extra anthropic-beta features to include. Default: ["claude-code-20250219"]. */
+  extraBetaFeatures?: string[];
+};
+
 export type AuthConfig = {
+  /** Masquerade as Claude Code for Anthropic API requests. */
+  masquerade?: AuthMasqueradeConfig;
   profiles?: Record<string, AuthProfileConfig>;
   order?: Record<string, string[]>;
   cooldowns?: {

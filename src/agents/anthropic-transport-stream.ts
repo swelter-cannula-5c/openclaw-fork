@@ -10,11 +10,13 @@ import {
   type SimpleStreamOptions,
   type ThinkingLevel,
 } from "@mariozechner/pi-ai";
+import { loadConfig } from "../config/config.js";
 import {
   applyAnthropicPayloadPolicyToParams,
   resolveAnthropicPayloadPolicy,
 } from "./anthropic-payload-policy.js";
 import { buildCopilotDynamicHeaders, hasCopilotVisionInput } from "./copilot-dynamic-headers.js";
+import { resolveMasquerade } from "./masquerade.js";
 import { buildGuardedModelFetch } from "./provider-transport-fetch.js";
 import { transformTransportMessages } from "./transport-message-transform.js";
 import {
@@ -26,7 +28,7 @@ import {
   sanitizeTransportPayloadText,
 } from "./transport-stream-shared.js";
 
-const CLAUDE_CODE_VERSION = "2.1.75";
+const CLAUDE_CODE_VERSION_FALLBACK = "2.1.75";
 const CLAUDE_CODE_TOOLS = [
   "Read",
   "Write",
@@ -427,23 +429,24 @@ function createAnthropicTransportClient(params: {
     betaFeatures.push("interleaved-thinking-2025-05-14");
   }
   if (isAnthropicOAuthToken(apiKey)) {
+    const masq = resolveMasquerade(loadConfig()?.auth?.masquerade);
+    const oauthBetaBase = masq.enabled
+      ? [...masq.extraBetaFeatures, "oauth-2025-04-20", ...betaFeatures]
+      : ["claude-code-20250219", "oauth-2025-04-20", ...betaFeatures];
+    const oauthHeaders: Record<string, string> = {
+      accept: "application/json",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "anthropic-beta": oauthBetaBase.join(","),
+      "user-agent": masq.enabled ? masq.userAgent : `claude-cli/${CLAUDE_CODE_VERSION_FALLBACK}`,
+      "x-app": masq.enabled ? masq.xApp : "cli",
+    };
     return {
       client: new Anthropic({
         apiKey: null,
         authToken: apiKey,
         baseURL: model.baseUrl,
         dangerouslyAllowBrowser: true,
-        defaultHeaders: mergeTransportHeaders(
-          {
-            accept: "application/json",
-            "anthropic-dangerous-direct-browser-access": "true",
-            "anthropic-beta": `claude-code-20250219,oauth-2025-04-20,${betaFeatures.join(",")}`,
-            "user-agent": `claude-cli/${CLAUDE_CODE_VERSION}`,
-            "x-app": "cli",
-          },
-          model.headers,
-          options?.headers,
-        ),
+        defaultHeaders: mergeTransportHeaders(oauthHeaders, model.headers, options?.headers),
         fetch,
       }),
       isOAuthToken: true,

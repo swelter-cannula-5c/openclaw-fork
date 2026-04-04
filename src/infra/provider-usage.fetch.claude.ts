@@ -1,3 +1,5 @@
+import { resolveMasquerade } from "../agents/masquerade.js";
+import { loadConfig } from "../config/config.js";
 import { buildUsageHttpErrorSnapshot, fetchJson } from "./provider-usage.fetch.shared.js";
 import { clampPercent, PROVIDER_LABELS } from "./provider-usage.shared.js";
 import type { ProviderUsageSnapshot, UsageWindow } from "./provider-usage.types.js";
@@ -117,17 +119,22 @@ export async function fetchClaudeUsage(
   timeoutMs: number,
   fetchFn: typeof fetch,
 ): Promise<ProviderUsageSnapshot> {
+  const masq = resolveMasquerade(loadConfig()?.auth?.masquerade);
+  const usageHeaders: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "User-Agent": masq.enabled ? masq.userAgent : "openclaw",
+    Accept: "application/json",
+    "anthropic-version": "2023-06-01",
+    "anthropic-beta": masq.enabled
+      ? [...masq.extraBetaFeatures, "oauth-2025-04-20"].join(",")
+      : "oauth-2025-04-20",
+  };
+  if (masq.enabled) {
+    usageHeaders["x-app"] = masq.xApp;
+  }
   const res = await fetchJson(
     "https://api.anthropic.com/api/oauth/usage",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "openclaw",
-        Accept: "application/json",
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "oauth-2025-04-20",
-      },
-    },
+    { headers: usageHeaders },
     timeoutMs,
     fetchFn,
   );

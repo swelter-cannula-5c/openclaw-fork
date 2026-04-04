@@ -13,7 +13,7 @@ import {
 } from "../../plugins/provider-runtime.runtime.js";
 import { resolveSecretRefString, type SecretRefResolveCache } from "../../secrets/resolve.js";
 import { refreshChutesTokens } from "../chutes-oauth.js";
-import { writeCodexCliCredentials } from "../cli-credentials.js";
+import { writeClaudeCliCredentials, writeCodexCliCredentials } from "../cli-credentials.js";
 import { AUTH_STORE_LOCK_OPTIONS, log } from "./constants.js";
 import { resolveTokenExpiryState } from "./credential-state.js";
 import { formatAuthDoctorHint } from "./doctor.js";
@@ -214,6 +214,31 @@ async function refreshOAuthTokenWithLock(params: {
           };
           if (!writeCodexCliCredentials(refreshedCredentials)) {
             log.warn("failed to persist refreshed codex credentials back to Codex storage", {
+              profileId: params.profileId,
+            });
+          }
+          store.profiles[params.profileId] = refreshedCredentials;
+          saveAuthProfileStore(store, params.agentDir);
+          return {
+            apiKey: await buildOAuthApiKey(refreshedCredentials.provider, refreshedCredentials),
+            newCredentials: refreshedCredentials,
+          };
+        }
+      }
+      if (externallyManaged.managedBy === "claude-cli") {
+        const pluginRefreshed = await refreshProviderOAuthCredentialWithPlugin({
+          provider: externallyManaged.provider,
+          context: externallyManaged,
+        });
+        if (pluginRefreshed) {
+          const refreshedCredentials: OAuthCredential = {
+            ...externallyManaged,
+            ...pluginRefreshed,
+            type: "oauth",
+            managedBy: "claude-cli",
+          };
+          if (!writeClaudeCliCredentials(refreshedCredentials)) {
+            log.warn("failed to persist refreshed claude credentials back to Claude CLI storage", {
               profileId: params.profileId,
             });
           }

@@ -2,7 +2,7 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { SecretRef } from "../../config/types.secrets.js";
 
 export type OAuthProvider = string;
-export type ExternalOAuthManager = "codex-cli" | "minimax-cli";
+export type ExternalOAuthManager = "codex-cli" | "minimax-cli" | "claude-cli";
 
 export type OAuthCredentials = {
   access: string;

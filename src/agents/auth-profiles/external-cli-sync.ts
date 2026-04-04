@@ -1,8 +1,11 @@
+import { loadConfig } from "../../config/config.js";
 import {
+  readClaudeCliCredentialsCached,
   readCodexCliCredentialsCached,
   readMiniMaxCliCredentialsCached,
 } from "../cli-credentials.js";
 import {
+  CLAUDE_CLI_PROFILE_ID,
   EXTERNAL_CLI_SYNC_TTL_MS,
   OPENAI_CODEX_DEFAULT_PROFILE_ID,
   MINIMAX_CLI_PROFILE_ID,
@@ -81,6 +84,37 @@ const EXTERNAL_CLI_SYNC_PROVIDERS: ExternalCliSyncProvider[] = [
     provider: "openai-codex",
     managedBy: "codex-cli",
     readCredentials: () => readCodexCliCredentialsCached({ ttlMs: EXTERNAL_CLI_SYNC_TTL_MS }),
+  },
+  {
+    profileId: CLAUDE_CLI_PROFILE_ID,
+    provider: "anthropic",
+    managedBy: "claude-cli",
+    readCredentials: (): OAuthCredential | null => {
+      // Only sync Claude CLI credentials when masquerade is enabled
+      const cfg = loadConfig();
+      if (!cfg?.auth?.masquerade?.enabled) {
+        return null;
+      }
+      const creds = readClaudeCliCredentialsCached({
+        ttlMs: EXTERNAL_CLI_SYNC_TTL_MS,
+        allowKeychainPrompt: false,
+      });
+      if (!creds) {
+        return null;
+      }
+      if (creds.type === "oauth") {
+        return {
+          type: "oauth",
+          provider: "anthropic",
+          access: creds.access,
+          refresh: creds.refresh,
+          expires: creds.expires,
+        };
+      }
+      // Token-type credentials from Claude CLI (non-refreshable)
+      // Not suitable for OAuth sync
+      return null;
+    },
   },
 ];
 
