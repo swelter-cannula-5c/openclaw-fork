@@ -1079,6 +1079,41 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
             description:
               "Cooldown/backoff controls for temporary profile suppression after billing-related failures and retry windows. Use these to prevent rapid re-selection of profiles that are still blocked.",
           },
+          masquerade: {
+            type: "object",
+            properties: {
+              enabled: {
+                type: "boolean",
+                title: "Masquerade Enabled",
+                description:
+                  "Enable Claude Code masquerade for Anthropic OAuth requests (default: false).",
+              },
+              userAgent: {
+                type: "string",
+                title: "User-Agent",
+                description:
+                  "User-Agent string to send to Anthropic API (default: claude-cli/<version>).",
+              },
+              xApp: {
+                type: "string",
+                title: "x-app Header",
+                description: "x-app header value (default: cli).",
+              },
+              extraBetaFeatures: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                title: "Extra Beta Features",
+                description:
+                  "Additional anthropic-beta features to include (default: [claude-code-20250219]).",
+              },
+            },
+            additionalProperties: false,
+            title: "Masquerade",
+            description:
+              "Present as Claude Code to the Anthropic API. Requires Claude Code OAuth credentials in macOS Keychain.",
+          },
         },
         additionalProperties: false,
         title: "Auth",
