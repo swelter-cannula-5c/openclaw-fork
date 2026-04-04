@@ -209,6 +209,62 @@ function syncExternalCliCredentialsForProvider(
 }
 
 /**
+ * When masquerade is enabled, sync Claude Code keychain credentials into
+ * the first existing anthropic profile (typically "anthropic:manual").
+ * This ensures the token is used by resolvePiCredentialMapFromStore which
+ * takes the first profile per provider from Object.values.
+ */
+function syncClaudeCliIntoExistingAnthropicProfile(
+  store: AuthProfileStore,
+  options: ExternalCliSyncOptions,
+): boolean {
+  const cfg = loadConfig();
+  if (!cfg?.auth?.masquerade?.enabled) {
+    return false;
+  }
+  const creds = readClaudeCliCredentialsCached({
+    ttlMs: EXTERNAL_CLI_SYNC_TTL_MS,
+    allowKeychainPrompt: false,
+  });
+  if (!creds || creds.type !== "oauth") {
+    return false;
+  }
+
+  // Find the first anthropic profile in the store
+  const anthropicEntry = Object.entries(store.profiles).find(([, v]) => v.provider === "anthropic");
+  if (!anthropicEntry) {
+    return false;
+  }
+  const [profileId, existing] = anthropicEntry;
+
+  // Build the managed credential
+  const managed: OAuthCredential = {
+    type: "oauth",
+    provider: "anthropic",
+    access: creds.access,
+    refresh: creds.refresh,
+    expires: creds.expires,
+    managedBy: "claude-cli",
+  };
+
+  // Check if update is needed
+  const existingOAuth = existing?.type === "oauth" ? existing : undefined;
+  if (existingOAuth && areOAuthCredentialsEquivalent(existingOAuth, managed)) {
+    return false;
+  }
+
+  store.profiles[profileId] = managed;
+  if (options.log !== false) {
+    log.info(`synced anthropic credentials from Claude CLI keychain into ${profileId}`, {
+      profileId,
+      expires: new Date(managed.expires).toISOString(),
+      managedBy: "claude-cli",
+    });
+  }
+  return true;
+}
+
+/**
  * Sync OAuth credentials from external CLI tools (MiniMax CLI, Codex CLI)
  * into the store.
  *
@@ -224,6 +280,11 @@ export function syncExternalCliCredentials(
     if (syncExternalCliCredentialsForProvider(store, provider, options)) {
       mutated = true;
     }
+  }
+
+  // Masquerade: sync Claude CLI credentials into existing anthropic profile
+  if (syncClaudeCliIntoExistingAnthropicProfile(store, options)) {
+    mutated = true;
   }
 
   return mutated;
