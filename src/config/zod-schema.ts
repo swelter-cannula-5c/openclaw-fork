@@ -452,6 +452,15 @@ export const OpenClawSchema = z
           })
           .strict()
           .optional(),
+        masquerade: z
+          .object({
+            enabled: z.boolean().optional(),
+            userAgent: z.string().optional(),
+            xApp: z.string().optional(),
+            extraBetaFeatures: z.array(z.string()).optional(),
+          })
+          .strict()
+          .optional(),
       })
       .strict()
       .optional(),
