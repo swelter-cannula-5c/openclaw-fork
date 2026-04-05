@@ -9,7 +9,7 @@
  *   "auth": {
  *     "masquerade": {
  *       "enabled": true,
- *       "userAgent": "claude-cli/2.1.75",
+ *       "userAgent": "claude-cli/2.1.81 (external, cli)",
  *       "xApp": "cli",
  *       "extraBetaFeatures": ["claude-code-20250219"]
  *     }
@@ -19,10 +19,16 @@
 
 import type { AuthMasqueradeConfig } from "../config/types.auth.js";
 
-const DEFAULT_CLAUDE_CODE_VERSION = "2.1.75";
-const DEFAULT_USER_AGENT = `claude-cli/${DEFAULT_CLAUDE_CODE_VERSION}`;
+const DEFAULT_CLAUDE_CODE_VERSION = "2.1.81";
+const DEFAULT_USER_AGENT = `claude-cli/${DEFAULT_CLAUDE_CODE_VERSION} (external, cli)`;
 const DEFAULT_X_APP = "cli";
-const DEFAULT_EXTRA_BETA_FEATURES = ["claude-code-20250219"];
+const DEFAULT_EXTRA_BETA_FEATURES = [
+  "claude-code-20250219",
+  "oauth-2025-04-20",
+  "context-1m-2025-08-07",
+  "interleaved-thinking-2025-05-14",
+  "redact-thinking-2026-02-12",
+];
 
 export type ResolvedMasquerade = {
   enabled: boolean;
