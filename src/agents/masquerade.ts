@@ -25,7 +25,7 @@ const DEFAULT_X_APP = "cli";
 const DEFAULT_EXTRA_BETA_FEATURES = [
   "claude-code-20250219",
   "oauth-2025-04-20",
-  "context-1m-2025-08-07",
+  
   "interleaved-thinking-2025-05-14",
   "redact-thinking-2026-02-12",
 ];
